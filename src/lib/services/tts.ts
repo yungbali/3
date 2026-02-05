@@ -1,10 +1,18 @@
 import { PodcastScript, AudioSegment } from '../types/podcast';
 
 // OpenAI TTS voice options
-// alloy: neutral, echo: male, fable: British, onyx: deep male, nova: female, shimmer: female
+// All six OpenAI voices mapped by their direct name and aliased for podcast hosts
 const VOICE_MAP: Record<string, string> = {
+  // Podcast host aliases
   voice1: 'onyx',   // Deep male voice - great for authoritative host
   voice2: 'nova',   // Female voice - warm and engaging
+  // Direct OpenAI voice names (pass-through)
+  alloy: 'alloy',     // Neutral voice
+  echo: 'echo',       // Male voice
+  fable: 'fable',     // British accent
+  onyx: 'onyx',       // Deep male voice
+  nova: 'nova',       // Female voice
+  shimmer: 'shimmer', // Soft female voice
 };
 
 // Emotion to speed mapping for OpenAI TTS (0.25 to 4.0, default 1.0)
