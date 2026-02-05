@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Command, Sparkles, CheckCircle } from 'lucide-react';
+import { Command, Mic, CheckCircle } from 'lucide-react';
 
 interface TopicFormProps {
   onSubmit: (data: { topic: string; tone: string; duration: string }) => void;
@@ -50,7 +50,7 @@ export default function TopicForm({ onSubmit, isLoading }: TopicFormProps) {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4" />
+                  <Mic className="w-4 h-4" />
                   <span>Generate</span>
                 </>
               )}
