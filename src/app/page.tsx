@@ -216,10 +216,11 @@ export default function Home() {
   const handleReset = () => {
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setState('idle');
-    setStatus('');
+    setProgress({ step: '', message: '' });
     setAudioUrl(null);
     setError(null);
     setPodcastTitle('');
+    setScriptInfo(null);
   };
 
   return (
