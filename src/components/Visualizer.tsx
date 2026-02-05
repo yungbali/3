@@ -12,7 +12,7 @@ export default function Visualizer({ isPlaying = true }: VisualizerProps) {
       {barHeights.map((height, i) => (
         <div
           key={i}
-          className={`w-1 bg-[#7b39fc] rounded-full ${isPlaying ? 'bar' : ''}`}
+          className={`w-1 bg-[#06b6d4] rounded-full ${isPlaying ? 'bar' : ''}`}
           style={{ height: isPlaying ? undefined : `${height}px` }}
         />
       ))}

@@ -23,7 +23,7 @@ export default function TopicForm({ onSubmit, isLoading }: TopicFormProps) {
       <form onSubmit={handleSubmit}>
         <div className="relative group">
           {/* Gradient glow effect */}
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-[#7b39fc] to-[#22c55e] rounded-lg opacity-30 group-hover:opacity-50 blur transition duration-500" />
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-[#06b6d4] to-[#22c55e] rounded-lg opacity-30 group-hover:opacity-50 blur transition duration-500" />
           
           {/* Input container */}
           <div className="relative flex items-center bg-[#0a0a0f] border border-white/10 rounded-lg p-1.5">

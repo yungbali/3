@@ -86,7 +86,7 @@ export default function GenerationStatus({ progress }: GenerationStatusProps) {
                 </div>
               ) : isActive ? (
                 <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <div className="absolute inset-0 rounded-full border border-[#7b39fc] border-t-transparent animate-spin" />
+                  <div className="absolute inset-0 rounded-full border border-[#06b6d4] border-t-transparent animate-spin" />
                 </div>
               ) : (
                 <div className="w-5 h-5 rounded-full border border-white/10 flex-shrink-0 mt-0.5" />
@@ -104,7 +104,7 @@ export default function GenerationStatus({ progress }: GenerationStatusProps) {
                   {step.label}
                 </span>
                 {detail && (isActive || isComplete) && (
-                  <span className="text-[10px] text-[#7b39fc] mt-0.5 block truncate">
+                  <span className="text-[10px] text-[#06b6d4] mt-0.5 block truncate">
                     {detail}
                   </span>
                 )}

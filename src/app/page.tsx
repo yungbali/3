@@ -230,7 +230,7 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-[#050507]/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <button onClick={handleReset} className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-[#7b39fc] flex items-center justify-center text-white">
+            <div className="w-6 h-6 rounded bg-[#06b6d4] flex items-center justify-center text-white">
               <AudioWaveform className="w-4 h-4" />
             </div>
             <span className="text-sm font-semibold tracking-wide text-white font-mono">KOTOMO</span>
@@ -293,8 +293,8 @@ export default function Home() {
                       <div className="relative z-10 p-6 space-y-6">
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-[#7b39fc]/20 rounded-lg border border-[#7b39fc]/30 flex items-center justify-center">
-                              <div className="w-5 h-5 border-2 border-[#7b39fc] border-t-transparent rounded-full animate-spin" />
+                            <div className="w-12 h-12 bg-[#06b6d4]/20 rounded-lg border border-[#06b6d4]/30 flex items-center justify-center">
+                              <div className="w-5 h-5 border-2 border-[#06b6d4] border-t-transparent rounded-full animate-spin" />
                             </div>
                             <div>
                               <h3 className="text-sm font-medium text-white tracking-tight">
@@ -305,7 +305,7 @@ export default function Home() {
                               </p>
                             </div>
                           </div>
-                          <div className="px-2 py-1 rounded bg-[#7b39fc]/10 border border-[#7b39fc]/20 text-[#7b39fc] text-[10px] font-mono uppercase tracking-wider">
+                          <div className="px-2 py-1 rounded bg-[#06b6d4]/10 border border-[#06b6d4]/20 text-[#06b6d4] text-[10px] font-mono uppercase tracking-wider">
                             {progress.step === 'generating_audio' && progress.currentLine 
                               ? `${progress.currentLine}/${progress.totalLines}`
                               : 'Processing'}
@@ -317,7 +317,7 @@ export default function Home() {
                           <div className="flex gap-3">
                             {scriptInfo.speakers.map((speaker, i) => (
                               <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-                                <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-[#7b39fc]' : 'bg-[#22c55e]'}`} />
+                                <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-[#06b6d4]' : 'bg-[#22c55e]'}`} />
                                 <span className="text-xs text-[#a1a1aa]">{speaker.name}</span>
                               </div>
                             ))}
@@ -331,7 +331,7 @@ export default function Home() {
                           <div className="space-y-2">
                             <div className="relative h-1 w-full bg-white/10 rounded-full overflow-hidden">
                               <div 
-                                className="absolute top-0 left-0 h-full bg-[#7b39fc] transition-all duration-300"
+                                className="absolute top-0 left-0 h-full bg-[#06b6d4] transition-all duration-300"
                                 style={{ width: `${(progress.currentLine / progress.totalLines) * 100}%` }}
                               />
                             </div>
@@ -353,7 +353,7 @@ export default function Home() {
                       <div className="relative z-10 p-6 space-y-6">
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-[#7b39fc]/20 rounded-lg border border-[#7b39fc]/30 flex items-center justify-center text-[#7b39fc]">
+                            <div className="w-12 h-12 bg-[#06b6d4]/20 rounded-lg border border-[#06b6d4]/30 flex items-center justify-center text-[#06b6d4]">
                               <AudioWaveform className="w-6 h-6" />
                             </div>
                             <div>
@@ -368,7 +368,7 @@ export default function Home() {
                         <Visualizer isPlaying={true} />
                         <div className="space-y-2">
                           <div className="relative h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                            <div className="absolute top-0 left-0 h-full w-[35%] bg-[#7b39fc]" />
+                            <div className="absolute top-0 left-0 h-full w-[35%] bg-[#06b6d4]" />
                           </div>
                           <div className="flex justify-between text-[10px] font-mono text-[#a1a1aa]">
                             <span>04:12</span>
@@ -426,7 +426,7 @@ export default function Home() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="relative w-5 h-5 flex items-center justify-center">
-                            <div className="absolute inset-0 rounded-full border border-[#7b39fc] border-t-transparent animate-spin" />
+                            <div className="absolute inset-0 rounded-full border border-[#06b6d4] border-t-transparent animate-spin" />
                           </div>
                           <span className="text-xs font-medium text-white">
                             Synthesizing Audio (Neural Model)
@@ -537,7 +537,7 @@ export default function Home() {
       <footer className="relative z-10 border-t border-white/5 bg-[#050507] py-12 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-[#7b39fc] flex items-center justify-center text-white">
+            <div className="w-5 h-5 rounded bg-[#06b6d4] flex items-center justify-center text-white">
               <AudioWaveform className="w-3 h-3" />
             </div>
             <span className="text-xs font-semibold text-[#ededed] font-mono">KOTOMO</span>

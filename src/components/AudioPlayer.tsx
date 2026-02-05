@@ -80,7 +80,7 @@ export default function AudioPlayer({ audioUrl, title }: AudioPlayerProps) {
         {/* Header */}
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#7b39fc]/20 rounded-lg border border-[#7b39fc]/30 flex items-center justify-center text-[#7b39fc]">
+            <div className="w-12 h-12 bg-[#06b6d4]/20 rounded-lg border border-[#06b6d4]/30 flex items-center justify-center text-[#06b6d4]">
               <Podcast className="w-6 h-6" />
             </div>
             <div>
@@ -104,7 +104,7 @@ export default function AudioPlayer({ audioUrl, title }: AudioPlayerProps) {
         <div className="space-y-2">
           <div className="relative h-1 w-full bg-white/10 rounded-full overflow-hidden">
             <div 
-              className="absolute top-0 left-0 h-full bg-[#7b39fc] transition-all duration-100"
+              className="absolute top-0 left-0 h-full bg-[#06b6d4] transition-all duration-100"
               style={{ width: `${progress}%` }}
             />
             <input

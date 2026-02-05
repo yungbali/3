@@ -61,7 +61,7 @@ export default function VideoBackground() {
       />
       
       {/* Gradient Mesh for atmosphere */}
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#7b39fc]/10 to-transparent z-10 pointer-events-none" />
+      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#06b6d4]/10 to-transparent z-10 pointer-events-none" />
     </div>
   );
 }
