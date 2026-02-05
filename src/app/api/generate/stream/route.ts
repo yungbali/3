@@ -141,12 +141,14 @@ export async function POST(request: NextRequest) {
         message: 'Generating audio...',
         totalLines: script.lines.length
       });
+      const audioStart = Date.now();
       console.log('\n🔊 Step 4: Generating audio...');
       
       const audioSegments = await ttsService.generateAudioForScript(
         script,
-        async (current, total, speaker, emotion) => {
-          await sendEvent('audio_progress', {
+        (current, total, speaker, emotion) => {
+          // Fire and forget - don't await to avoid blocking TTS
+          sendEvent('audio_progress', {
             step: 'generating_audio',
             current,
             total,
@@ -162,20 +164,29 @@ export async function POST(request: NextRequest) {
         segmentCount: audioSegments.length,
         message: `Audio generated: ${audioSegments.length} segments`
       });
-      console.log(`   ✓ Audio generated: ${audioSegments.length} segments`);
+      console.log(`   ✓ Audio generated: ${audioSegments.length} segments (took ${Date.now() - audioStart}ms)`);
 
       // Step 5: Merge audio segments
       await sendEvent('status', { step: 'merging', message: 'Merging audio segments...' });
+      const mergeStart = Date.now();
       console.log('\n🎵 Step 5: Merging audio...');
       
       const finalAudio = await audioService.mergeSegments(audioSegments);
+      const mergeDuration = Date.now() - mergeStart;
       
-      console.log(`   ✓ Final audio ready: ${(finalAudio.length / 1024).toFixed(1)} KB`);
+      // Signal merge complete
+      await sendEvent('merged', { 
+        step: 'merged',
+        audioSize: finalAudio.length,
+        message: `Audio merged: ${(finalAudio.length / 1024).toFixed(1)} KB`
+      });
+      console.log(`   ✓ Final audio ready: ${(finalAudio.length / 1024).toFixed(1)} KB (took ${mergeDuration}ms)`);
 
       // Step 6: Upload to storage (if enabled)
       let audioUrl: string | null = null;
       if (storageEnabled) {
         await sendEvent('status', { step: 'uploading', message: 'Uploading to cloud storage...' });
+        const uploadStart = Date.now();
         console.log('\n☁️ Step 6: Uploading to Vercel Blob...');
         
         const stored = await storageService.uploadPodcast(finalAudio, script.title, {
@@ -186,10 +197,14 @@ export async function POST(request: NextRequest) {
         });
         
         audioUrl = stored.url;
-        console.log(`   ✓ Uploaded: ${audioUrl}`);
+        console.log(`   ✓ Uploaded: ${audioUrl} (took ${Date.now() - uploadStart}ms)`);
       }
 
       // Send complete event with audio URL or base64 fallback
+      const completeStart = Date.now();
+      const audioBase64 = storageEnabled ? undefined : finalAudio.toString('base64');
+      console.log(`   Base64 conversion: ${Date.now() - completeStart}ms (size: ${audioBase64?.length || 0} chars)`);
+      
       await sendEvent('complete', { 
         step: 'complete',
         title: script.title,
@@ -198,11 +213,11 @@ export async function POST(request: NextRequest) {
         audioSize: finalAudio.length,
         // Prefer URL if storage is enabled, fall back to base64
         audioUrl: audioUrl,
-        audioBase64: storageEnabled ? undefined : finalAudio.toString('base64'),
+        audioBase64: audioBase64,
         message: 'Podcast generation complete!'
       });
       
-      console.log('\n✅ Podcast generation complete! Sent to client.\n');
+      console.log(`\n✅ Podcast generation complete! Sent to client. (complete event took ${Date.now() - completeStart}ms)\n`);
       await writer.close();
 
     } catch (error) {

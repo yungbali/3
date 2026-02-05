@@ -178,6 +178,14 @@ export default function Home() {
         }));
         break;
 
+      case 'merged':
+        setProgress(prev => ({
+          ...prev,
+          step: 'merged',
+          message: data.message as string,
+        }));
+        break;
+
       case 'complete':
         // Use direct URL if available (Vercel Blob), otherwise convert base64
         let url: string;
