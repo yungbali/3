@@ -2,5 +2,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "functions": {
+    "src/app/api/generate/stream/route.ts": {
+      "maxDuration": 300
+    }
+  }
 }

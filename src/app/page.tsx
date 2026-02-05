@@ -33,8 +33,6 @@ interface GenerationProgress {
   provider?: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
 export default function Home() {
   const [state, setState] = useState<AppState>('idle');
   const [progress, setProgress] = useState<GenerationProgress>({ step: '', message: '' });
@@ -56,7 +54,8 @@ export default function Home() {
     setScriptInfo(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/generate/stream`, {
+      // Use relative URL - API is now on the same origin
+      const response = await fetch('/api/generate/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -101,6 +100,7 @@ export default function Home() {
         }
       }
     } catch (err) {
+      console.error('Generation error:', err);
       setError(err instanceof Error ? err.message : 'Something went wrong');
       setState('error');
     }
