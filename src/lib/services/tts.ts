@@ -1,12 +1,13 @@
 import { PodcastScript, AudioSegment } from '../types/podcast';
 
-// Cartesia voice IDs for different speaker types
+// OpenAI TTS voice options
+// alloy: neutral, echo: male, fable: British, onyx: deep male, nova: female, shimmer: female
 const VOICE_MAP: Record<string, string> = {
-  voice1: '79a125e8-cd45-4c13-8a67-188112f4dd22', // Barbershop Man
-  voice2: 'b7d50908-b17c-442d-ad8d-810c63997ed9', // California Girl
+  voice1: 'onyx',   // Deep male voice - great for authoritative host
+  voice2: 'nova',   // Female voice - warm and engaging
 };
 
-// Emotion to Cartesia speed/style mapping
+// Emotion to speed mapping for OpenAI TTS (0.25 to 4.0, default 1.0)
 const EMOTION_CONFIG: Record<string, { speed: number }> = {
   curious: { speed: 1.0 },
   enthusiastic: { speed: 1.1 },
@@ -16,24 +17,36 @@ const EMOTION_CONFIG: Record<string, { speed: number }> = {
   serious: { speed: 0.9 },
   excited: { speed: 1.15 },
   contemplative: { speed: 0.9 },
+  informative: { speed: 1.0 },
+  encouraging: { speed: 1.05 },
+  amazed: { speed: 1.1 },
+  grateful: { speed: 0.95 },
 };
 
 export class TTSService {
   private apiKey: string;
-  private baseUrl = 'https://api.cartesia.ai';
+  private baseUrl = 'https://api.openai.com/v1';
+  private model: string;
 
   constructor() {
-    const apiKey = process.env.CARTESIA_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      throw new Error('CARTESIA_API_KEY environment variable is required');
+      throw new Error('OPENAI_API_KEY environment variable is required');
     }
     this.apiKey = apiKey;
+    // Use tts-1 for faster generation, tts-1-hd for higher quality
+    this.model = process.env.OPENAI_TTS_MODEL || 'tts-1';
+    console.log(`🔊 TTS Service initialized with OpenAI model: ${this.model}`);
   }
 
   getAvailableVoices() {
     return [
-      { id: 'voice1', name: 'Host 1 (Male)', description: 'Warm, conversational male voice' },
-      { id: 'voice2', name: 'Host 2 (Female)', description: 'Friendly, engaging female voice' },
+      { id: 'voice1', name: 'Host 1 (Onyx)', description: 'Deep, authoritative male voice' },
+      { id: 'voice2', name: 'Host 2 (Nova)', description: 'Warm, engaging female voice' },
+      { id: 'alloy', name: 'Alloy', description: 'Neutral voice' },
+      { id: 'echo', name: 'Echo', description: 'Male voice' },
+      { id: 'fable', name: 'Fable', description: 'British accent' },
+      { id: 'shimmer', name: 'Shimmer', description: 'Soft female voice' },
     ];
   }
 
@@ -50,35 +63,27 @@ export class TTSService {
     voiceId: string, 
     emotion: string
   ): Promise<Buffer> {
-    const cartesiaVoiceId = this.getVoiceId(voiceId);
+    const openaiVoice = this.getVoiceId(voiceId);
     const emotionConfig = this.getEmotionConfig(emotion);
 
-    const response = await fetch(`${this.baseUrl}/tts/bytes`, {
+    const response = await fetch(`${this.baseUrl}/audio/speech`, {
       method: 'POST',
       headers: {
-        'X-API-Key': this.apiKey,
-        'Cartesia-Version': '2024-06-10',
+        'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model_id: 'sonic-2',
-        transcript: text,
-        voice: {
-          mode: 'id',
-          id: cartesiaVoiceId,
-        },
-        output_format: {
-          container: 'mp3',
-          bit_rate: 128000,
-          sample_rate: 44100,
-        },
-        language: 'en',
+        model: this.model,
+        input: text,
+        voice: openaiVoice,
+        response_format: 'mp3',
+        speed: emotionConfig.speed,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Cartesia TTS error:', errorText);
+      console.error('OpenAI TTS error:', errorText);
       throw new Error(`TTS generation failed: ${response.status} ${response.statusText}`);
     }
 
