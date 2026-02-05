@@ -7,9 +7,15 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: ANTHROPIC_API_KEY
+      - key: OPENROUTER_API_KEY
         sync: false
+      - key: LLM_MODEL
+        value: anthropic/claude-sonnet-4
+      - key: APP_NAME
+        value: KOTOMO
       - key: CARTESIA_API_KEY
+        sync: false
+      - key: BLOB_READ_WRITE_TOKEN
         sync: false
       - key: FRONTEND_URL
         sync: false

@@ -10,55 +10,206 @@ import Visualizer from '@/components/Visualizer';
 
 type AppState = 'idle' | 'generating' | 'complete' | 'error';
 
+// Progress state for real-time updates
+interface GenerationProgress {
+  step: string;
+  message: string;
+  // Validation
+  cleanedTopic?: string;
+  // Research
+  keyPointsCount?: number;
+  factsCount?: number;
+  // Script
+  title?: string;
+  speakers?: Array<{ name: string; personality: string }>;
+  lineCount?: number;
+  // Audio generation
+  currentLine?: number;
+  totalLines?: number;
+  currentSpeaker?: string;
+  currentEmotion?: string;
+  // Model info
+  model?: string;
+  provider?: string;
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function Home() {
   const [state, setState] = useState<AppState>('idle');
-  const [status, setStatus] = useState('');
+  const [progress, setProgress] = useState<GenerationProgress>({ step: '', message: '' });
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [podcastTitle, setPodcastTitle] = useState<string>('');
+  const [scriptInfo, setScriptInfo] = useState<{
+    title: string;
+    speakers: Array<{ name: string; personality: string }>;
+    lineCount: number;
+  } | null>(null);
 
   const handleGenerate = async (data: { topic: string; tone: string; duration: string }) => {
     setState('generating');
-    setStatus('validating');
+    setProgress({ step: 'started', message: 'Starting podcast generation...' });
     setError(null);
     setAudioUrl(null);
     setPodcastTitle(data.topic);
+    setScriptInfo(null);
 
     try {
-      const statusProgression = ['validating', 'researching', 'scripting', 'generating'];
-      let statusIndex = 0;
-      
-      const statusInterval = setInterval(() => {
-        if (statusIndex < statusProgression.length - 1) {
-          statusIndex++;
-          setStatus(statusProgression[statusIndex]);
-        }
-      }, 8000);
-
-      const response = await fetch(`${API_URL}/api/generate`, {
+      const response = await fetch(`${API_URL}/api/generate/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
-      clearInterval(statusInterval);
-
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || errorData.error || 'Failed to generate podcast');
+        throw new Error('Failed to connect to generation service');
       }
 
-      const audioBlob = await response.blob();
-      const url = URL.createObjectURL(audioBlob);
-      
-      setAudioUrl(url);
-      setStatus('complete');
-      setState('complete');
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('Failed to get response stream');
+      }
+
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process complete SSE messages
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+        let currentEvent = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            currentEvent = line.slice(7);
+          } else if (line.startsWith('data: ') && currentEvent) {
+            try {
+              const eventData = JSON.parse(line.slice(6));
+              handleSSEEvent(currentEvent, eventData);
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e);
+            }
+            currentEvent = '';
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
       setState('error');
+    }
+  };
+
+  const handleSSEEvent = (event: string, data: Record<string, unknown>) => {
+    switch (event) {
+      case 'status':
+        setProgress({
+          step: data.step as string,
+          message: data.message as string,
+          model: data.model as string | undefined,
+          provider: data.provider as string | undefined,
+          totalLines: data.totalLines as number | undefined,
+        });
+        break;
+
+      case 'validated':
+        setProgress(prev => ({
+          ...prev,
+          step: 'validated',
+          message: data.message as string,
+          cleanedTopic: data.cleanedTopic as string,
+        }));
+        if (data.cleanedTopic) {
+          setPodcastTitle(data.cleanedTopic as string);
+        }
+        break;
+
+      case 'researched':
+        setProgress(prev => ({
+          ...prev,
+          step: 'researched',
+          message: data.message as string,
+          keyPointsCount: data.keyPointsCount as number,
+          factsCount: data.factsCount as number,
+        }));
+        break;
+
+      case 'scripted':
+        const speakers = data.speakers as Array<{ name: string; personality: string }>;
+        setProgress(prev => ({
+          ...prev,
+          step: 'scripted',
+          message: data.message as string,
+          title: data.title as string,
+          speakers,
+          lineCount: data.lineCount as number,
+        }));
+        setScriptInfo({
+          title: data.title as string,
+          speakers,
+          lineCount: data.lineCount as number,
+        });
+        setPodcastTitle(data.title as string);
+        break;
+
+      case 'audio_progress':
+        setProgress(prev => ({
+          ...prev,
+          step: 'generating_audio',
+          message: data.message as string,
+          currentLine: data.current as number,
+          totalLines: data.total as number,
+          currentSpeaker: data.speaker as string,
+          currentEmotion: data.emotion as string,
+        }));
+        break;
+
+      case 'audio_complete':
+        setProgress(prev => ({
+          ...prev,
+          step: 'audio_complete',
+          message: data.message as string,
+        }));
+        break;
+
+      case 'complete':
+        // Use direct URL if available (Vercel Blob), otherwise convert base64
+        let url: string;
+        if (data.audioUrl) {
+          // Direct CDN URL from Vercel Blob
+          url = data.audioUrl as string;
+        } else if (data.audioBase64) {
+          // Fallback: Convert base64 to blob URL
+          const base64 = data.audioBase64 as string;
+          const binaryString = atob(base64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
+          url = URL.createObjectURL(audioBlob);
+        } else {
+          setError('No audio data received');
+          setState('error');
+          break;
+        }
+        
+        setAudioUrl(url);
+        setPodcastTitle(data.title as string || podcastTitle);
+        setProgress({ step: 'complete', message: 'Podcast generation complete!' });
+        setState('complete');
+        break;
+
+      case 'error':
+        setError(data.message as string || data.error as string || 'Generation failed');
+        setState('error');
+        break;
     }
   };
 
@@ -147,19 +298,52 @@ export default function Home() {
                             </div>
                             <div>
                               <h3 className="text-sm font-medium text-white tracking-tight">
-                                {podcastTitle || 'Generating...'}
+                                {scriptInfo?.title || podcastTitle || 'Generating...'}
                               </h3>
-                              <p className="text-xs text-[#a1a1aa] mt-0.5">Processing your request</p>
+                              <p className="text-xs text-[#a1a1aa] mt-0.5">
+                                {progress.model ? `Using ${progress.model}` : 'Processing your request'}
+                              </p>
                             </div>
                           </div>
                           <div className="px-2 py-1 rounded bg-[#7b39fc]/10 border border-[#7b39fc]/20 text-[#7b39fc] text-[10px] font-mono uppercase tracking-wider">
-                            Processing
+                            {progress.step === 'generating_audio' && progress.currentLine 
+                              ? `${progress.currentLine}/${progress.totalLines}`
+                              : 'Processing'}
                           </div>
                         </div>
-                        <Visualizer isPlaying={false} />
+                        
+                        {/* Show speakers if script is ready */}
+                        {scriptInfo && (
+                          <div className="flex gap-3">
+                            {scriptInfo.speakers.map((speaker, i) => (
+                              <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                                <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-[#7b39fc]' : 'bg-[#22c55e]'}`} />
+                                <span className="text-xs text-[#a1a1aa]">{speaker.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <Visualizer isPlaying={progress.step === 'generating_audio'} />
+                        
+                        {/* Audio line progress */}
+                        {progress.step === 'generating_audio' && progress.currentLine && progress.totalLines && (
+                          <div className="space-y-2">
+                            <div className="relative h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                              <div 
+                                className="absolute top-0 left-0 h-full bg-[#7b39fc] transition-all duration-300"
+                                style={{ width: `${(progress.currentLine / progress.totalLines) * 100}%` }}
+                              />
+                            </div>
+                            <div className="flex justify-between text-[10px] font-mono text-[#a1a1aa]">
+                              <span>{progress.currentSpeaker} ({progress.currentEmotion})</span>
+                              <span>{progress.currentLine}/{progress.totalLines} lines</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <GenerationStatus status={status} />
+                    <GenerationStatus progress={progress} />
                   </>
                 ) : (
                   <>

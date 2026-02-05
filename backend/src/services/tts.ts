@@ -86,7 +86,10 @@ export class TTSService {
     return Buffer.from(arrayBuffer);
   }
 
-  async generateAudioForScript(script: PodcastScript): Promise<AudioSegment[]> {
+  async generateAudioForScript(
+    script: PodcastScript,
+    onProgress?: (current: number, total: number, speaker: string, emotion: string) => void
+  ): Promise<AudioSegment[]> {
     const segments: AudioSegment[] = [];
     
     // Build speaker to voiceId mapping
@@ -101,6 +104,11 @@ export class TTSService {
       const voiceId = speakerVoiceMap[line.speaker] || 'voice1';
       
       console.log(`   Generating line ${i + 1}/${script.lines.length}: ${line.speaker} (${line.emotion})`);
+      
+      // Report progress before generating
+      if (onProgress) {
+        onProgress(i + 1, script.lines.length, line.speaker, line.emotion);
+      }
       
       try {
         const audioBuffer = await this.generateSpeech(

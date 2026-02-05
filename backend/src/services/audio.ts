@@ -42,9 +42,7 @@ export class AudioService {
 
     const segmentFiles: string[] = [];
     const outputFile = path.join(this.tempDir, `output-${uuidv4()}.mp3`);
-    
-    // Create a short silence file for pauses between speakers
-    const silenceFile = path.join(this.tempDir, `silence-${uuidv4()}.mp3`);
+    const listFile = path.join(this.tempDir, `list-${uuidv4()}.txt`);
 
     try {
       // Write all segments to temp files
@@ -53,19 +51,11 @@ export class AudioService {
         segmentFiles.push(filepath);
       }
 
-      // Create silence file (200ms pause)
-      await this.createSilence(silenceFile, 0.2);
-
       // Build concat list file (ffmpeg concat demuxer format)
-      const listFile = path.join(this.tempDir, `list-${uuidv4()}.txt`);
       let listContent = '';
       
       for (let i = 0; i < segmentFiles.length; i++) {
         listContent += `file '${segmentFiles[i]}'\n`;
-        // Add silence between segments (but not after the last one)
-        if (i < segmentFiles.length - 1) {
-          listContent += `file '${silenceFile}'\n`;
-        }
       }
       
       await fs.promises.writeFile(listFile, listContent);
@@ -91,27 +81,13 @@ export class AudioService {
       const mergedBuffer = await fs.promises.readFile(outputFile);
 
       // Cleanup all temp files
-      await this.cleanup([...segmentFiles, silenceFile, listFile, outputFile]);
+      await this.cleanup([...segmentFiles, listFile, outputFile]);
 
       return mergedBuffer;
     } catch (error) {
       // Cleanup on error
-      await this.cleanup([...segmentFiles, silenceFile, outputFile]);
+      await this.cleanup([...segmentFiles, listFile, outputFile]);
       throw error;
     }
-  }
-
-  private async createSilence(filepath: string, durationSeconds: number): Promise<void> {
-    return new Promise((resolve, reject) => {
-      ffmpeg()
-        .input('anullsrc=r=44100:cl=stereo')
-        .inputFormat('lavfi')
-        .duration(durationSeconds)
-        .outputOptions(['-c:a', 'libmp3lame', '-b:a', '128k'])
-        .output(filepath)
-        .on('error', reject)
-        .on('end', () => resolve())
-        .run();
-    });
   }
 }
