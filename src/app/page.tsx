@@ -107,6 +107,9 @@ export default function Home() {
   };
 
   const handleSSEEvent = (event: string, data: Record<string, unknown>) => {
+    // Debug: Log all SSE events received
+    console.log(`[SSE] Event: ${event}`, data);
+    
     switch (event) {
       case 'status':
         setProgress({
@@ -187,11 +190,13 @@ export default function Home() {
         break;
 
       case 'complete':
+        console.log('[SSE] Complete event received!', { audioUrl: data.audioUrl, hasBase64: !!data.audioBase64 });
         // Use direct URL if available (Vercel Blob), otherwise convert base64
         let url: string;
         if (data.audioUrl) {
           // Direct CDN URL from Vercel Blob
           url = data.audioUrl as string;
+          console.log('[SSE] Using audioUrl:', url);
         } else if (data.audioBase64) {
           // Fallback: Convert base64 to blob URL
           const base64 = data.audioBase64 as string;
