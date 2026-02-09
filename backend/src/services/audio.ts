@@ -1,4 +1,3 @@
-import ffmpeg from 'fluent-ffmpeg';
 import { AudioSegment } from '../types/podcast';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
@@ -7,10 +6,23 @@ import * as os from 'os';
 
 export class AudioService {
   private tempDir: string;
+  private ffmpegAvailable: boolean = true;
 
   constructor() {
-    // Use system temp directory (works on Render)
     this.tempDir = os.tmpdir();
+    this.checkFfmpeg();
+  }
+
+  private checkFfmpeg(): void {
+    try {
+      const { execSync } = require('child_process');
+      execSync('which ffmpeg', { stdio: 'ignore' });
+      console.log('   ✓ ffmpeg found');
+      this.ffmpegAvailable = true;
+    } catch {
+      console.warn('   ⚠️ ffmpeg not found — using buffer concatenation fallback');
+      this.ffmpegAvailable = false;
+    }
   }
 
   private async writeSegmentToFile(segment: AudioSegment, index: number): Promise<string> {
@@ -24,22 +36,27 @@ export class AudioService {
     for (const file of files) {
       try {
         await fs.promises.unlink(file);
-      } catch (error) {
+      } catch {
         // Ignore cleanup errors
       }
     }
   }
 
-  async mergeSegments(segments: AudioSegment[]): Promise<Buffer> {
-    if (segments.length === 0) {
-      throw new Error('No audio segments to merge');
-    }
+  /**
+   * Simple buffer concatenation fallback when ffmpeg is not available.
+   * Works for MP3 files since they can be naively concatenated.
+   */
+  private mergeBuffers(segments: AudioSegment[]): Buffer {
+    console.log('   Using buffer concatenation (no ffmpeg)');
+    const buffers = segments.map(s => s.audioBuffer);
+    return Buffer.concat(buffers);
+  }
 
-    // If only one segment, return it directly
-    if (segments.length === 1) {
-      return segments[0].audioBuffer;
-    }
-
+  /**
+   * Merge using ffmpeg concat demuxer for clean joins.
+   */
+  private async mergeWithFfmpeg(segments: AudioSegment[]): Promise<Buffer> {
+    const ffmpeg = require('fluent-ffmpeg');
     const segmentFiles: string[] = [];
     const outputFile = path.join(this.tempDir, `output-${uuidv4()}.mp3`);
     const listFile = path.join(this.tempDir, `list-${uuidv4()}.txt`);
@@ -51,43 +68,66 @@ export class AudioService {
         segmentFiles.push(filepath);
       }
 
-      // Build concat list file (ffmpeg concat demuxer format)
+      // Build concat list file
       let listContent = '';
-      
-      for (let i = 0; i < segmentFiles.length; i++) {
-        listContent += `file '${segmentFiles[i]}'\n`;
+      for (const file of segmentFiles) {
+        listContent += `file '${file}'\n`;
       }
-      
       await fs.promises.writeFile(listFile, listContent);
 
-      // Merge using ffmpeg concat demuxer
+      // Merge with a timeout
       await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('ffmpeg merge timed out after 30 seconds'));
+        }, 30000);
+
         ffmpeg()
           .input(listFile)
           .inputOptions(['-f', 'concat', '-safe', '0'])
           .outputOptions(['-c', 'copy'])
           .output(outputFile)
-          .on('error', (err) => {
-            console.error('FFmpeg error:', err);
+          .on('error', (err: Error) => {
+            clearTimeout(timeout);
+            console.error('FFmpeg error:', err.message);
             reject(err);
           })
           .on('end', () => {
+            clearTimeout(timeout);
             resolve();
           })
           .run();
       });
 
-      // Read the merged file
       const mergedBuffer = await fs.promises.readFile(outputFile);
-
-      // Cleanup all temp files
       await this.cleanup([...segmentFiles, listFile, outputFile]);
-
       return mergedBuffer;
     } catch (error) {
-      // Cleanup on error
       await this.cleanup([...segmentFiles, listFile, outputFile]);
       throw error;
     }
+  }
+
+  async mergeSegments(segments: AudioSegment[]): Promise<Buffer> {
+    if (segments.length === 0) {
+      throw new Error('No audio segments to merge');
+    }
+
+    if (segments.length === 1) {
+      return segments[0].audioBuffer;
+    }
+
+    // Try ffmpeg first, fall back to buffer concat
+    if (this.ffmpegAvailable) {
+      try {
+        return await this.mergeWithFfmpeg(segments);
+      } catch (error) {
+        console.warn('   ⚠️ ffmpeg merge failed, falling back to buffer concat:', 
+          error instanceof Error ? error.message : error);
+        this.ffmpegAvailable = false;
+        return this.mergeBuffers(segments);
+      }
+    }
+
+    return this.mergeBuffers(segments);
   }
 }

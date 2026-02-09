@@ -164,6 +164,11 @@ router.post('/generate/stream', async (req: Request, res: Response) => {
     
     const finalAudio = await audioService.mergeSegments(audioSegments);
     
+    sendEvent(res, 'merged', { 
+      step: 'merged',
+      audioSize: finalAudio.length,
+      message: `Audio merged: ${(finalAudio.length / 1024).toFixed(1)} KB`
+    });
     console.log(`   ✓ Final audio ready: ${(finalAudio.length / 1024).toFixed(1)} KB`);
 
     // Step 6: Upload to storage (if enabled)
