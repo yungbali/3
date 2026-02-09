@@ -182,42 +182,55 @@ export async function POST(request: NextRequest) {
       });
       console.log(`   ✓ Final audio ready: ${(finalAudio.length / 1024).toFixed(1)} KB (took ${mergeDuration}ms)`);
 
-      // Step 6: Upload to storage (if enabled)
+      // Step 6: Upload to storage or use temporary in-memory store
       let audioUrl: string | null = null;
       if (storageEnabled) {
         await sendEvent('status', { step: 'uploading', message: 'Uploading to cloud storage...' });
         const uploadStart = Date.now();
         console.log('\n☁️ Step 6: Uploading to Vercel Blob...');
         
-        const stored = await storageService.uploadPodcast(finalAudio, script.title, {
-          topic: validation.cleanedTopic,
-          tone,
-          duration,
-          lineCount: script.lines.length,
-        });
-        
-        audioUrl = stored.url;
-        console.log(`   ✓ Uploaded: ${audioUrl} (took ${Date.now() - uploadStart}ms)`);
+        try {
+          const stored = await storageService.uploadPodcast(finalAudio, script.title, {
+            topic: validation.cleanedTopic,
+            tone,
+            duration,
+            lineCount: script.lines.length,
+          });
+          
+          audioUrl = stored.url;
+          console.log(`   ✓ Uploaded: ${audioUrl} (took ${Date.now() - uploadStart}ms)`);
+        } catch (uploadError) {
+          console.error('   ⚠️ Blob upload failed, falling back to temp store:', uploadError);
+        }
       }
 
-      // Send complete event with audio URL or base64 fallback
-      const completeStart = Date.now();
-      const audioBase64 = storageEnabled ? undefined : finalAudio.toString('base64');
-      console.log(`   Base64 conversion: ${Date.now() - completeStart}ms (size: ${audioBase64?.length || 0} chars)`);
-      
-      await sendEvent('complete', { 
+      // Fallback: send audio as base64 when blob storage is unavailable
+      // The SSE parser on the frontend handles large payloads correctly
+      if (!audioUrl) {
+        await sendEvent('status', { step: 'uploading', message: 'Preparing audio...' });
+        console.log('   ⚠️ No blob storage, sending audio as base64 fallback');
+      }
+
+      // Build the complete event payload
+      const completePayload: Record<string, unknown> = { 
         step: 'complete',
         title: script.title,
         speakers: script.speakers.map(s => ({ name: s.name, personality: s.personality })),
         lineCount: script.lines.length,
         audioSize: finalAudio.length,
-        // Prefer URL if storage is enabled, fall back to base64
-        audioUrl: audioUrl,
-        audioBase64: audioBase64,
-        message: 'Podcast generation complete!'
-      });
+        message: 'Podcast generation complete!',
+      };
+
+      if (audioUrl) {
+        completePayload.audioUrl = audioUrl;
+      } else {
+        // Send base64 as fallback — SSE parser handles large payloads
+        completePayload.audioBase64 = finalAudio.toString('base64');
+      }
+
+      await sendEvent('complete', completePayload);
       
-      console.log(`\n✅ Podcast generation complete! Sent to client. (complete event took ${Date.now() - completeStart}ms)\n`);
+      console.log(`\n✅ Podcast generation complete! Sent to client.\n`);
       await writer.close();
 
     } catch (error) {

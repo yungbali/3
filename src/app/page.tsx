@@ -74,30 +74,50 @@ export default function Home() {
 
       let buffer = '';
 
+      const processLines = (text: string) => {
+        // SSE messages are separated by double newlines (\n\n)
+        // Each message has "event: X\ndata: Y\n\n"
+        const messages = text.split('\n\n');
+        // The last element may be incomplete — return it as remainder
+        const remainder = messages.pop() || '';
+
+        for (const message of messages) {
+          const lines = message.split('\n');
+          let eventName = '';
+          let dataLine = '';
+
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              eventName = line.slice(7);
+            } else if (line.startsWith('data: ')) {
+              dataLine = line.slice(6);
+            }
+          }
+
+          if (eventName && dataLine) {
+            try {
+              const eventData = JSON.parse(dataLine);
+              handleSSEEvent(eventName, eventData);
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e);
+            }
+          }
+        }
+
+        return remainder;
+      };
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        
-        // Process complete SSE messages
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+        buffer = processLines(buffer);
+      }
 
-        let currentEvent = '';
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            currentEvent = line.slice(7);
-          } else if (line.startsWith('data: ') && currentEvent) {
-            try {
-              const eventData = JSON.parse(line.slice(6));
-              handleSSEEvent(currentEvent, eventData);
-            } catch (e) {
-              console.error('Failed to parse SSE data:', e);
-            }
-            currentEvent = '';
-          }
-        }
+      // Process any remaining data in the buffer after stream closes
+      if (buffer.trim()) {
+        processLines(buffer + '\n\n');
       }
     } catch (err) {
       console.error('Generation error:', err);
@@ -190,33 +210,43 @@ export default function Home() {
         break;
 
       case 'complete':
-        console.log('[SSE] Complete event received!', { audioUrl: data.audioUrl, hasBase64: !!data.audioBase64 });
-        // Use direct URL if available (Vercel Blob), otherwise convert base64
-        let url: string;
+        console.log('[SSE] Complete event received!', { 
+          audioUrl: data.audioUrl, 
+          hasBase64: !!data.audioBase64,
+          base64Length: (data.audioBase64 as string)?.length || 0,
+        });
+        
+        let finalUrl: string | null = null;
+        
         if (data.audioUrl) {
-          // Direct CDN URL from Vercel Blob
-          url = data.audioUrl as string;
-          console.log('[SSE] Using audioUrl:', url);
+          // Direct URL from Vercel Blob
+          finalUrl = data.audioUrl as string;
         } else if (data.audioBase64) {
           // Fallback: Convert base64 to blob URL
-          const base64 = data.audioBase64 as string;
-          const binaryString = atob(base64);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+          try {
+            const base64 = data.audioBase64 as string;
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
+            finalUrl = URL.createObjectURL(audioBlob);
+            console.log('[SSE] Created blob URL from base64:', finalUrl);
+          } catch (e) {
+            console.error('[SSE] Failed to decode base64 audio:', e);
           }
-          const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
-          url = URL.createObjectURL(audioBlob);
+        }
+        
+        if (finalUrl) {
+          setAudioUrl(finalUrl);
+          setPodcastTitle(data.title as string || podcastTitle);
+          setProgress({ step: 'complete', message: 'Podcast generation complete!' });
+          setState('complete');
         } else {
           setError('No audio data received');
           setState('error');
-          break;
         }
-        
-        setAudioUrl(url);
-        setPodcastTitle(data.title as string || podcastTitle);
-        setProgress({ step: 'complete', message: 'Podcast generation complete!' });
-        setState('complete');
         break;
 
       case 'error':
@@ -227,7 +257,6 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
     setState('idle');
     setProgress({ step: '', message: '' });
     setAudioUrl(null);
