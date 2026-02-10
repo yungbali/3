@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AudioWaveform, LogIn, Users, SlidersHorizontal, CloudUpload } from 'lucide-react';
+import { LogIn, Users, SlidersHorizontal, CloudUpload } from 'lucide-react';
 import TopicForm from '@/components/TopicForm';
 import GenerationStatus from '@/components/GenerationStatus';
 import AudioPlayer from '@/components/AudioPlayer';
@@ -273,10 +273,7 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-[#050507]/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <button onClick={handleReset} className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-[#06b6d4] flex items-center justify-center text-white">
-              <AudioWaveform className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-semibold tracking-wide text-white font-mono">KOTOMO</span>
+            <img src="/kotomo-logo.png" alt="KOTOMO" className="h-7 w-auto object-contain" />
           </button>
 
           <div className="hidden md:flex items-center gap-8 text-xs font-medium text-[#a1a1aa]">
@@ -396,8 +393,8 @@ export default function Home() {
                       <div className="relative z-10 p-6 space-y-6">
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-[#06b6d4]/20 rounded-lg border border-[#06b6d4]/30 flex items-center justify-center text-[#06b6d4]">
-                              <AudioWaveform className="w-6 h-6" />
+                            <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                              <img src="/kotomo-logo.png" alt="KOTOMO" className="w-12 h-12 object-cover" />
                             </div>
                             <div>
                               <h3 className="text-sm font-medium text-white tracking-tight">The Architecture of AI</h3>
@@ -580,10 +577,7 @@ export default function Home() {
       <footer className="relative z-10 border-t border-white/5 bg-[#050507] py-12 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-[#06b6d4] flex items-center justify-center text-white">
-              <AudioWaveform className="w-3 h-3" />
-            </div>
-            <span className="text-xs font-semibold text-[#ededed] font-mono">KOTOMO</span>
+            <img src="/kotomo-logo.png" alt="KOTOMO" className="h-5 w-auto object-contain" />
           </div>
           
           <div className="flex gap-8 text-[11px] font-mono text-[#a1a1aa] uppercase tracking-wide">

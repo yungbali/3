@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Podcast, Download, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Download, Volume2, VolumeX } from 'lucide-react';
 import Visualizer from './Visualizer';
 
 interface AudioPlayerProps {
@@ -80,8 +80,8 @@ export default function AudioPlayer({ audioUrl, title }: AudioPlayerProps) {
         {/* Header */}
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#06b6d4]/20 rounded-lg border border-[#06b6d4]/30 flex items-center justify-center text-[#06b6d4]">
-              <Podcast className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+              <img src="/kotomo-logo.png" alt="KOTOMO" className="w-12 h-12 object-cover" />
             </div>
             <div>
               <h3 className="text-sm font-medium text-white tracking-tight">
