@@ -581,10 +581,10 @@ export default function Home() {
           </div>
           
           <div className="flex gap-8 text-[11px] font-mono text-[#a1a1aa] uppercase tracking-wide">
-            <a href="#" className="hover:text-white transition-colors">GitHub</a>
-            <a href="#" className="hover:text-white transition-colors">Twitter</a>
-            <a href="#" className="hover:text-white transition-colors">Status</a>
-            <a href="#" className="hover:text-white transition-colors">Legal</a>
+            <a href="https://github.com/yungbali/3" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
+            <a href="https://x.com/kotomo_engine" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Twitter</a>
+            <a href="/status" className="hover:text-white transition-colors">Status</a>
+            <a href="/legal" className="hover:text-white transition-colors">Legal</a>
           </div>
         </div>
       </footer>
